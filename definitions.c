@@ -14,13 +14,20 @@
 
 #include <time.h>
 
-#define TRUE 1;
-#define FALSE 0;
+ #include <sys/wait.h>
+
+#define TRUE 1
+#define FALSE 0
 
 /*Chave da fila de mensagens entre escalonador e executa postergdo*/
 const int KEY = 150143290;
 /*Tipo de mensagens entre escalonador e executa postergado*/
 const int ESC_MSG_TYPE = 1;
+/*Mensagens de free e busy entre escalonador e gerente*/
+const int ESCGER_CONTROL_MSG_TYPE = 2;
+const int ESCGER_INFO_MSG_TYPE = 3;
+
+const int SHUTDOWN_MSG_TYPE = 4;
 
 typedef struct Msg0{
 	long int msg_type;

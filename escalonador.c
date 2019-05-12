@@ -1,6 +1,7 @@
 #include "definitions.c"
 
 int running = TRUE;
+int gerente_pid;
 
 void terminate(){
 	printf("Escalonador terminando...\n");
@@ -24,14 +25,20 @@ int main(int argc, char* argv[]){
 		printf("Uso correto: executa_postergado <topologia>\n");
 	}else{
 		
-		int qid = msgget(KEY, IPC_CREAT | 0777);
-		if(qid == -1){
-			printf("Problema ao criar fila errno: %d\n", errno);
-			exit(0);
-		}
-		
-		if(strcmp(argv[1], "tree")){
+		if(strcmp(argv[1], "tree") == 0){
+			gerente_pid = fork();
+			if(gerente_pid < 0){
+				printf("Erro no fork %d\n", errno);
+				exit(0);
+			}
 			
+			if(gerente_pid == 0){
+				int ret = execl("./tree", "tree", (char*) NULL);
+				if(ret == -1){
+					printf("Erro no execl %d\n", errno);
+				}
+			}
+				
 		}else if(strcmp(argv[1], "hypercube")){
 			
 			/*Iniciar programa gerenciador aqui*/
@@ -44,6 +51,17 @@ int main(int argc, char* argv[]){
 			printf("Topologia incorreta informada utilize: tree, hypercube, torus\n");
 			exit(0);
 		}
+		
+		int qid = msgget(KEY, IPC_CREAT | 0777);
+		if(qid == -1){
+			printf("Problema ao criar fila errno: %d\n", errno);
+			exit(0);
+		}
+		
+		struct shutdown{long int type; int pid;} shut_msg;
+		shut_msg.type = SHUTDOWN_MSG_TYPE;
+		shut_msg.pid = getpid();
+		msgsnd(qid, &shut_msg, sizeof(shut_msg)-sizeof(long int), 0);
 		
 		NodeJob *jobList = NULL;
 		int njobs = 1;
@@ -63,11 +81,32 @@ int main(int argc, char* argv[]){
 			
 			NodeJob *next = poolNextJob(jobList);
 			if(next != NULL){
+				MessageGerente msgg;
+				printf("Esperando liberar gerenciador\n");
+				fflush(stdout);
+				msgrcv(qid, &msgg, sizeof(msgg)-sizeof(long int), ESCGER_CONTROL_MSG_TYPE, 0);
+				
+				MessageEscalonador msge;
+				msge.msg_type = ESCGER_INFO_MSG_TYPE;
+				strcpy(msge.prog_name, next->prog_name);
+				msgsnd(qid, &msge, sizeof(msge)-sizeof(long int), 0);
+				
+				printf("Esperando finalizacao gerenciador\n");
+				fflush(stdout);
+				msgrcv(qid, &msgg, sizeof(msgg)-sizeof(long int), ESCGER_CONTROL_MSG_TYPE, 0);
+				
+				printf("job %d terminado\n", next->id);
 				next->status = FINISHED;
-				printf("Executando job %d\n", next->id);
 			}
 			
 			fflush(stdout);
+		}
+		
+		kill(gerente_pid, SIGTERM);
+		int info;
+		wait(&info);
+		if(msgctl(qid, IPC_RMID, NULL) == -1){
+			printf("Erro ao excluir fila errno: %d\n", errno);
 		}
 	}
 

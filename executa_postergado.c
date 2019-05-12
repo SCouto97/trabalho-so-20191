@@ -6,9 +6,9 @@ int main(int argc, char* argv[]){
 		printf("Quantidade de parametros incorreta.\n");
 		printf("Uso correto: executa_postergado <seg> <arq_executavel>\n");
 	}else{
-		int qid = msgget(KEY, IPC_CREAT | 0777);
-		if(qid == -1){
-			printf("Problema ao criar fila errno: %d\n", errno);
+		int qid = msgget(KEY, 0777);
+		if(errno == ENOENT){
+			printf("Fila de mensagens ainda nao foi criada, escalonador nao esta rodando errno: %d\n", errno);
 			exit(0);
 		}else{
 			MessageEscalonador msg;
