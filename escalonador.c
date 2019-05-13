@@ -16,6 +16,35 @@ NodeJob* poolNextJob(NodeJob *job){
 	}
 }
 
+void endChild(){
+	kill(gerente_pid, SIGTERM);
+	int info;
+	wait(&info);
+}
+
+
+void printJobInfo(NodeJob job){
+	#define SZ 50
+	char sub_date[SZ];
+	char begin_date[SZ];
+	char end_date[SZ];
+	char pattern[SZ]="%d/%m/%y,%H:%M:%S";
+	
+	strftime (sub_date,SZ,pattern,localtime(&job.submission));
+	strftime (begin_date,SZ,pattern,localtime(&job.begin));
+	strftime (end_date,SZ,pattern,localtime(&job.end));
+	
+	printf("\t%d\t%d\t%s\t%s\t%s\t%s\t%f\n", job.id, job.sec, job.prog_name, sub_date, begin_date, end_date, job.makespan);
+	NodeProcess *next = job.exec_info;
+	printf("\t\t   PID\tINICIO\tFIM\n");
+	while(next != NULL){
+		strftime (begin_date,SZ,pattern,localtime(&(next->begin)));
+		strftime (end_date,SZ,pattern,localtime(&(next->end)));
+		printf("\t\t|->%d\t%s\t%s\n", next->pid, begin_date, end_date);
+		next = next->next;
+	}
+}
+
 int main(int argc, char* argv[]){
 	signal(SIGTERM, terminate);
 	
@@ -33,7 +62,9 @@ int main(int argc, char* argv[]){
 			}
 			
 			if(gerente_pid == 0){
-				int ret = execl("./tree", "tree", (char*) NULL);
+				char buffer[10];
+				sprintf(buffer, "%d", getpid());
+				int ret = execl("./tree", "tree", buffer,(char*) NULL);
 				if(ret == -1){
 					printf("Erro no execl %d\n", errno);
 				}
@@ -81,30 +112,59 @@ int main(int argc, char* argv[]){
 			
 			NodeJob *next = poolNextJob(jobList);
 			if(next != NULL){
-				MessageGerente msgg;
-				printf("Esperando liberar gerenciador\n");
-				fflush(stdout);
-				msgrcv(qid, &msgg, sizeof(msgg)-sizeof(long int), ESCGER_CONTROL_MSG_TYPE, 0);
 				
+				printf("Enviando informacoes do job %d\n", next->id);
+				fflush(stdout);
+				/*Enviar dados sobre o programa a ser executado*/
 				MessageEscalonador msge;
-				msge.msg_type = ESCGER_INFO_MSG_TYPE;
+				msge.msg_type = ESCGER_MSG_TYPE;
 				strcpy(msge.prog_name, next->prog_name);
-				msgsnd(qid, &msge, sizeof(msge)-sizeof(long int), 0);
+				while(msgsnd(qid, &msge, sizeof(msge)-sizeof(long int), 0) == -1){
+					if(errno == EINTR) continue;
+					else{
+						/*Deu erro cabuloso nao tem o que fazer*/
+						endChild();
+						exit(0);
+					}
+				};
 				
-				printf("Esperando finalizacao gerenciador\n");
-				fflush(stdout);
-				msgrcv(qid, &msgg, sizeof(msgg)-sizeof(long int), ESCGER_CONTROL_MSG_TYPE, 0);
+				
+				/*Fetch de informacoes dos processos executados*/
+				printf("Fetching informacoes de execucao\n");
+				fflush(stdout);	
+				while(TRUE){
+					MessageGerente info;
+					while(msgrcv(qid, &info, sizeof(info)-sizeof(long int), ESCGER_MSG_TYPE + OFFSET, 0) == -1){
+						if(errno == EINTR) continue;
+						else{
+							/*Deu erro cabuloso nao tem o que fazer*/
+							printf("Mensagem recebida %d\n", errno);
+							fflush(stdout);	
+					
+							endChild();
+							exit(0);
+						}
+					}
+					
+					
+					if(info.status == INFO){
+						NodeProcess *new = getNodeProcess(&info);
+						if(next->exec_info == NULL)next->exec_info=new;
+						else addNodeProcess(next->exec_info, new);
+					}else{
+						break;
+					}
+				}
 				
 				printf("job %d terminado\n", next->id);
 				next->status = FINISHED;
+				printJobInfo(*next);
 			}
 			
 			fflush(stdout);
 		}
 		
-		kill(gerente_pid, SIGTERM);
-		int info;
-		wait(&info);
+		endChild();
 		if(msgctl(qid, IPC_RMID, NULL) == -1){
 			printf("Erro ao excluir fila errno: %d\n", errno);
 		}

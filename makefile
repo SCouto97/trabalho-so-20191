@@ -19,7 +19,7 @@ term:
 	./shutdown
 
 r:
-	./executa_postergado 1 prog
+	./executa_postergado 1 test1
 #	./escalonador tree
 
 clean:
