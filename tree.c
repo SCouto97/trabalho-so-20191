@@ -16,10 +16,10 @@ void terminate(){
 	int info;
 	for(int i = 2; i <= N; ++i) {
 		kill(child_pid[i], SIGKILL);
+		wait(&info);
 		printf("kill gerente pid: %d\n", child_pid[i]);
 		fflush(stdout);
-	}
-	for(int i = 2; i <= N; ++i) wait(&info);	
+	}	
 	
 	exit(0);
 }

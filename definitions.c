@@ -59,8 +59,14 @@ typedef struct nodeprocess{
 }NodeProcess;
 
 const int WAIT = 0;
-const int RUNNIG = 1;
+const int RUNNING = 1;
 const int FINISHED = 2;
+
+char to_string[3][50] = {
+	"WAIT",
+	"RUNNING",
+	"FINISHED"
+};
 
 typedef struct nodejob{
 	struct nodejob *next;

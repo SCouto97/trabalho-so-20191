@@ -11,9 +11,25 @@ void terminate(){
 NodeJob* poolNextJob(NodeJob *job){
 	if(job == NULL) return NULL;
 	else{
-		if(job->status == WAIT && (int)difftime(time(NULL),job->submission) > job->sec) return job;
+		if(job->status == WAIT && (int)difftime(time(NULL),job->submission) >= job->sec) return job;
 		else return poolNextJob(job->next);
 	}
+}
+
+void setEndingTimes(NodeJob *job){
+	NodeProcess *next = job->exec_info;
+	if(next != NULL){
+		job->begin = next->begin;
+		job->end = next->end;
+	}
+	
+	while(next != NULL){
+		if(next->begin < job->begin)job->begin = next->begin;
+		if(next->end > job->end)job->end = next->end;
+		next = next->next;
+	}
+	
+	job->makespan = difftime(job->end,job->begin);
 }
 
 void endChild(){
@@ -22,28 +38,41 @@ void endChild(){
 	wait(&info);
 }
 
+void printHeader(){
+	printf("JOB\tSEC\tPROG_NAME\tSUBMISSION\t\tBEGIN\t\t\tEND\t\t\tMAKESPAN\tSTATUS\n");
+}
 
-void printJobInfo(NodeJob job){
+void printJobInfo(NodeJob *job){
 	#define SZ 50
 	char sub_date[SZ];
 	char begin_date[SZ];
 	char end_date[SZ];
 	char pattern[SZ]="%d/%m/%y,%H:%M:%S";
 	
-	strftime (sub_date,SZ,pattern,localtime(&job.submission));
-	strftime (begin_date,SZ,pattern,localtime(&job.begin));
-	strftime (end_date,SZ,pattern,localtime(&job.end));
+	strftime (sub_date,SZ,pattern,localtime(&job->submission));
+	strftime (begin_date,SZ,pattern,localtime(&job->begin));
+	strftime (end_date,SZ,pattern,localtime(&job->end));
 	
-	printf("\t%d\t%d\t%s\t%s\t%s\t%s\t%f\n", job.id, job.sec, job.prog_name, sub_date, begin_date, end_date, job.makespan);
-	NodeProcess *next = job.exec_info;
-	printf("\t\t   PID\tINICIO\tFIM\n");
+			/* 1   2   3     4   5   6   7*/
+	printf("%d\t%d\t%s\t\t%s\t%s\t%s\t%.2f\t\t%s\n", job->id, job->sec, job->prog_name, sub_date, begin_date, end_date, job->makespan, to_string[job->status]);
+	NodeProcess *next = job->exec_info;
+	if(next != NULL)
+		printf("\t\tPID\tINICIO\t\t\tFIM\n");
 	while(next != NULL){
 		strftime (begin_date,SZ,pattern,localtime(&(next->begin)));
 		strftime (end_date,SZ,pattern,localtime(&(next->end)));
-		printf("\t\t|->%d\t%s\t%s\n", next->pid, begin_date, end_date);
+		printf("\t\t%d\t%s\t%s\n", next->pid, begin_date, end_date);
 		next = next->next;
 	}
+	printf("\n");
 }
+
+void printAll(NodeJob *job){
+	if(job == NULL) return;
+	printJobInfo(job);
+	printAll(job->next);
+}
+
 
 int main(int argc, char* argv[]){
 	signal(SIGTERM, terminate);
@@ -158,13 +187,20 @@ int main(int argc, char* argv[]){
 				
 				printf("job %d terminado\n", next->id);
 				next->status = FINISHED;
-				printJobInfo(*next);
+				setEndingTimes(next);
+				
+				printHeader();
+				printJobInfo(next);
 			}
 			
 			fflush(stdout);
 		}
 		
 		endChild();
+		printf("\n\nFINAL STATISTICS\n\n");
+		printHeader();
+		printAll(jobList);
+		
 		if(msgctl(qid, IPC_RMID, NULL) == -1){
 			printf("Erro ao excluir fila errno: %d\n", errno);
 		}
