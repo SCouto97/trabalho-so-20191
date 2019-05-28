@@ -99,14 +99,25 @@ int main(int argc, char* argv[]){
 				}
 			}
 				
-		}else if(strcmp(argv[1], "hypercube")){
+		}else if(strcmp(argv[1], "hypercube") == 0){
 			
 			/*Iniciar programa gerenciador aqui*/
 		
-		}else if(strcmp(argv[1], "torus")){
-		
-			/*Iniciar programa gerenciador aqui*/
-		
+		}else if(strcmp(argv[1], "torus") == 0){
+			gerente_pid = fork();
+			if(gerente_pid < 0){
+				printf("Erro no fork %d\n", errno);
+				exit(0);
+			}
+			
+			if(gerente_pid == 0){
+				char buffer[10];
+				sprintf(buffer, "%d", getpid());
+				int ret = execl("./torus", "torus", buffer,(char*) NULL);
+				if(ret == -1){
+					printf("Erro no execl %d\n", errno);
+				}
+			}
 		}else{
 			printf("Topologia incorreta informada utilize: tree, hypercube, torus\n");
 			exit(0);
