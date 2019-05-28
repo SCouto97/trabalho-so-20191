@@ -6,7 +6,7 @@ int redirect[N+1] = {0,15,11,1,0,
 					 	1, 1,3,1,
 					 	0, 0,0,0};
 
-int childs[N+1] = {0,2,2,1,0,
+int childs_count[N+1] = {0,2,2,1,0,
 					 1,2,2,0,
 					 1,1,2,1,
 					 0,0,0,0};
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]){
 		
 		if(redirect[id]){
 			msge.msg_type = ESCGER_MSG_TYPE+id;
-			int snd_child = childs[id];
+			int snd_child = childs_count[id];
 			while(snd_child-->0)
 				msgsnd(qid, &msge, sizeof(msge)-sizeof(long int), 0);
 		}
