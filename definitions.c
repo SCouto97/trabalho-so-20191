@@ -19,8 +19,6 @@
 #define TRUE 1
 #define FALSE 0
 
-#define N 15
-
 /*Chave da fila de mensagens entre escalonador e executa postergdo*/
 const int KEY = 150143290;
 /*Tipo de mensagens entre escalonador e executa postergado*/

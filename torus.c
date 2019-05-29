@@ -1,23 +1,32 @@
 #include "definitions.c"
 
-//#define N 3
-//int redirect[N+1] = {0,2,0,0};
-
 #define N 16
-int redirect[N+1] = {0,15,6,4,2,
-					 	1,0,0,0,
-					 	0,1,2,0,
-					 	0,0,1,0};
+int redirect[N+1] = {0,15,11,1,0,
+					 	2, 8,5,0,
+					 	1, 1,3,1,
+					 	0, 0,0,0};
 
-int childs_count[N+1] = {0,4,3,2,2,
-                           1,0,0,0,
-                           0,1,1,0,
-                           0,0,1,0};
+int childs_count[N+1] = {0,2,2,1,0,
+					 1,2,2,0,
+					 1,1,2,1,
+					 0,0,0,0};
 
-int father[N+1] = {0,0, 1, 1, 2,
-					 1, 2, 3, 4,
-					 1, 2, 3, 4,
-					 5,10,11,15};
+int father[N+1] = {0,0, 1, 2, 3,
+					 1, 2, 6, 7,
+					 5, 6, 7,11,
+					 9,10,11,12};
+
+/*
+SCHEME
+1 <  2  < 3 <  4
+^    ^  
+5    6 <  7 <  8
+^    ^    ^
+9   10   11 < 12
+^    ^    ^    ^ 
+13  14   15   16
+*/
+
 int child_pid[N+1];
 int id = 1;
 
@@ -58,16 +67,16 @@ int main(int argc, char* argv[]){
 		if(child_pid[i] == 0)break;
 		id = 1;
 	}
-
-    int j;
+	
 	while(TRUE){
 		MessageEscalonador msge;
 		msgrcv(qid, &msge, sizeof(msge)-sizeof(long int), ESCGER_MSG_TYPE+father[id], 0);
 		
-		fflush(stdout);
-		for(j = 0; j < childs_count[id]; j++){
+		if(redirect[id]){
 			msge.msg_type = ESCGER_MSG_TYPE+id;
-			msgsnd(qid, &msge, sizeof(msge)-sizeof(long int), 0);
+			int snd_child = childs_count[id];
+			while(snd_child-->0)
+				msgsnd(qid, &msge, sizeof(msge)-sizeof(long int), 0);
 		}
 		
 		int exec_pid = fork();
@@ -96,7 +105,6 @@ int main(int argc, char* argv[]){
 		msgsnd(qid, &info, sizeof(info)-sizeof(long int), 0);
 		int count_redirect = redirect[id];
 		while(count_redirect-->0){
-            printf("Redirecionando mensagem de %d para %d\n", id, father[id]);
 			msgrcv(qid, &info, sizeof(info)-sizeof(long int),ESCGER_MSG_TYPE + OFFSET + id, 0);
 			info.msg_type = ESCGER_MSG_TYPE + OFFSET + father[id];
 			msgsnd(qid, &info, sizeof(info)-sizeof(long int), 0);
@@ -112,3 +120,4 @@ int main(int argc, char* argv[]){
 	
 	return 0;
 }
+
