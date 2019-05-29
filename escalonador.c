@@ -100,8 +100,18 @@ int main(int argc, char* argv[]){
 			}
 				
 		}else if(strcmp(argv[1], "hypercube")){
-			
-			/*Iniciar programa gerenciador aqui*/
+			gerente_pid = fork();
+			if(gerente_pid < 0) {
+				printf("Erro no fork %d\n", errno);
+				exit(0);
+			} else if(gerente_pid == 0) {
+				char buffer[10];
+				sprintf(buffer, "%d", getpid());
+				int ret = execl("./hypercube", "hypercube", buffer, (char*) NULL);
+				if(ret == -1){
+					printf("Erro no execl %d\n", errno);
+				}
+			}
 		
 		}else if(strcmp(argv[1], "torus")){
 		
