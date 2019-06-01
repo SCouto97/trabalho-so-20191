@@ -1,8 +1,5 @@
 #include "definitions.c"
 
-//#define N 3
-//int redirect[N+1] = {0,2,0,0};
-
 #define N 16
 int redirect[N+1] = {0,15,6,4,2,
 					 	1,0,0,0,
@@ -92,12 +89,13 @@ int main(int argc, char* argv[]){
 		info.pid = exec_pid;
 		info.status = INFO;
 		info.msg_type = ESCGER_MSG_TYPE + OFFSET + father[id] ;
-				
+			
+		printf("%d %d\n", id, getpid());
+		
 		msgsnd(qid, &info, sizeof(info)-sizeof(long int), 0);
 		int count_redirect = redirect[id];
 		while(count_redirect-->0){
-            printf("Redirecionando mensagem de %d para %d\n", id, father[id]);
-			msgrcv(qid, &info, sizeof(info)-sizeof(long int),ESCGER_MSG_TYPE + OFFSET + id, 0);
+        	msgrcv(qid, &info, sizeof(info)-sizeof(long int),ESCGER_MSG_TYPE + OFFSET + id, 0);
 			info.msg_type = ESCGER_MSG_TYPE + OFFSET + father[id];
 			msgsnd(qid, &info, sizeof(info)-sizeof(long int), 0);
 		}

@@ -2,6 +2,6 @@
 #include <unistd.h>
 
 int main(){
-	sleep(10);
+	sleep(1);
 	return 0;
 }

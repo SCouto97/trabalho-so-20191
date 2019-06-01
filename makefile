@@ -14,6 +14,7 @@ c_tree:
 
 c_torus:
 	$(GCC) $(ARGS) torus.c -o torus
+	
 c_hypercube:
 	$(GCC) $(ARGS) hypercube.c -o hypercube
 
@@ -24,10 +25,10 @@ term:
 	./shutdown
 
 r:
-	./executa_postergado 10 test1
+	./executa_postergado 1 test1
 	
 e:
-	./escalonador torus
+	./escalonador tree &
 
 clean:
 	rm -f tree
