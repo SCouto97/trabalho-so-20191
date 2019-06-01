@@ -1,3 +1,9 @@
+/*
+Marcos Paulo - 15/0154208
+Samuel Couto - 15/0021623
+Nur Corezzi - 15/0143290
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +20,7 @@
 
 #include <time.h>
 
- #include <sys/wait.h>
+#include <sys/wait.h>
 
 #define TRUE 1
 #define FALSE 0
